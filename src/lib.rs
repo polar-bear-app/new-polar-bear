@@ -1,5 +1,6 @@
 pub mod app {
     pub mod eframe;
+    pub mod run;
 }
 pub mod arch {
     pub mod run;
@@ -9,6 +10,7 @@ pub mod arch {
 }
 pub mod wayland {
     pub mod compositor;
+    pub mod minimal;
 }
 pub mod utils {
     pub mod config;

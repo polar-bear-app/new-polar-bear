@@ -15,31 +15,28 @@ lto = true
 codegen-units = 1
 
 [dependencies]
+egui_wgpu_backend = "0.33.0"
+egui_winit_platform = "0.25.0"
 jni = "0.21.1"
 log = "0.4"
 mockall = "0.13.1"
 tar = "0.4.43"
 wayland-server = "0.31.6"
+winit = "0.30.8"
 xz2 = "0.1.7"
+
+[target.'cfg(target_os = "android")'.dependencies]
+android_logger = { version = "0.14", default-features = false }
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 expanduser = "1.2.2"
 
-[target.'cfg(not(target_os = "android"))'.dependencies.eframe]
-version = "0.30"
-default-features = true
-
-[target.'cfg(target_os = "android")'.dependencies.android_logger]
-version = "0.14"
+[dependencies.smithay]
+git = "https://github.com/Smithay/smithay"
 default-features = false
-
-[target.'cfg(target_os = "android")'.dependencies.eframe]
-version = "0.30"
-default-features = false
-features = ["glow", "android-native-activity", "default_fonts"]
-
-# Used to get same winit used by eframe.
-[target.'cfg(target_os = "android")'.dependencies.egui-winit]
-version = "0.30"
-default-features = false
-features = ["clipboard", "links"]
+features = [
+    "wayland-protocols",
+    "wayland-server",
+    "renderer_glow",
+    "wayland_frontend",
+]
