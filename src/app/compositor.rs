@@ -3,7 +3,7 @@ use std::{
     os::unix::io::OwnedFd,
     rc::Rc,
     sync::{Arc, Mutex},
-    time::Instant, // Added import
+    time::{Duration, Instant}, // Added import
 };
 
 use smithay::{
@@ -13,10 +13,11 @@ use smithay::{
     input::{self, keyboard::KeyboardHandle, touch::TouchHandle, Seat, SeatHandler, SeatState},
     output::{Mode, Output, PhysicalProperties, Scale, Subpixel},
     reexports::{
+        calloop::EventLoop,
         wayland_protocols::xdg::shell::server::xdg_toplevel,
         wayland_server::{protocol::wl_seat, Display},
     },
-    utils::{Logical, Serial, Size, Transform},
+    utils::{Logical, Point, Serial, Size, Transform},
     wayland::{
         buffer::BufferHandler,
         compositor::{
@@ -35,6 +36,7 @@ use smithay::{
         },
         shm::{ShmHandler, ShmState},
     },
+    xwayland::{X11Wm, XWayland, XWaylandEvent},
 };
 use wayland_server::{
     backend::{ClientData, ClientId, DisconnectReason},
@@ -42,7 +44,7 @@ use wayland_server::{
         wl_buffer,
         wl_surface::{self, WlSurface},
     },
-    Client, ListeningSocket,
+    Client, DisplayHandle, ListeningSocket,
 };
 use winit::platform::android::activity::AndroidApp;
 
@@ -62,6 +64,11 @@ pub struct PolarBearCompositor {
     pub output: Option<Output>,
 }
 
+pub struct XWayland {
+    pub xwm: X11Wm,
+    pub xdisplay: u32,
+}
+
 pub struct State {
     pub compositor_state: CompositorState,
     pub xdg_shell_state: XdgShellState,
@@ -69,10 +76,73 @@ pub struct State {
     pub data_device_state: DataDeviceState,
     pub seat_state: SeatState<Self>,
     pub size: Size<i32, Logical>,
+    pub xwayland: Option<XWayland>,
 }
 
 impl BufferHandler for State {
     fn buffer_destroyed(&mut self, _buffer: &wl_buffer::WlBuffer) {}
+}
+
+impl State {
+    pub fn start_xwayland(&self, dh: &DisplayHandle) {
+        use std::process::Stdio;
+
+        use smithay::wayland::compositor::CompositorHandler;
+
+        let (xwayland, client) = XWayland::spawn(
+            dh,
+            None,
+            std::iter::empty::<(String, String)>(),
+            true,
+            Stdio::null(),
+            Stdio::null(),
+            |_| (),
+        )
+        .expect("failed to start XWayland");
+
+        let mut event_loop: EventLoop<State> =
+            EventLoop::try_new().expect("Failed to initialize the event loop!");
+
+        let handle = event_loop.handle();
+
+        let ret = handle.insert_source(xwayland, move |event, _, data| match event {
+            XWaylandEvent::Ready {
+                x11_socket,
+                display_number,
+            } => {
+                let xwayland_scale = std::env::var("ANVIL_XWAYLAND_SCALE")
+                    .ok()
+                    .and_then(|s| s.parse::<u32>().ok())
+                    .unwrap_or(1);
+                data.client_compositor_state(&client)
+                    .set_client_scale(xwayland_scale);
+                let mut wm = X11Wm::start_wm(handle.clone(), x11_socket, client.clone())
+                    .expect("Failed to attach X11 Window Manager");
+
+                let cursor = Cursor::load();
+                let image = cursor.get_image(1, Duration::ZERO);
+                wm.set_cursor(
+                    &image.pixels_rgba,
+                    Size::from((image.width as u16, image.height as u16)),
+                    Point::from((image.xhot as u16, image.yhot as u16)),
+                )
+                .expect("Failed to set xwayland default cursor");
+                data.xwayland = Some(XWayland {
+                    xwm: wm,
+                    xdisplay: display_number,
+                });
+            }
+            XWaylandEvent::Error => {
+                println!("XWayland crashed on startup");
+            }
+        });
+        if let Err(e) = ret {
+            println!(
+                "Failed to insert the XWaylandSource into the event loop: {}",
+                e
+            );
+        }
+    }
 }
 
 impl XdgShellHandler for State {
@@ -225,7 +295,10 @@ impl PolarBearCompositor {
             data_device_state: DataDeviceState::new::<State>(&dh),
             seat_state,
             size: (1920, 1080).into(),
+            xwayland: None,
         };
+
+        state.start_xwayland(&dh);
 
         Ok(PolarBearCompositor {
             state,
