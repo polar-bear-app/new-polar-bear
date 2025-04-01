@@ -1,0 +1,13 @@
+[workspace]
+members = [
+    "apk",
+    "appbundle",
+    "appimage",
+    "mvn",
+    "msix",
+    "pri",
+    "xbuild",
+    "xcommon",
+]
+default-members = ["xbuild"]
+exclude = ["examples"]

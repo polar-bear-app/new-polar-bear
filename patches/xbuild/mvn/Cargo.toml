@@ -1,0 +1,15 @@
+[package]
+name = "mvn"
+version = "0.2.0"
+edition = "2021"
+description = "Library for fetching and resolving maven dependencies."
+repository = "https://github.com/rust-mobile/xbuild"
+license = "Apache-2.0 OR MIT"
+
+[dependencies]
+anyhow = "1.0.68"
+log = "0.4.17"
+pubgrub = "0.2.1"
+quick-xml = { version = "0.26.0", features = ["serialize"] }
+serde = { version = "1.0.151", features = ["derive"] }
+xcommon = { version = "0.3.0", path = "../xcommon" }

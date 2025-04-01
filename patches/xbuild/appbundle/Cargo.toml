@@ -1,0 +1,20 @@
+[package]
+name = "appbundle"
+version = "0.3.0"
+edition = "2021"
+description = "Library for creating and signing appbundles."
+repository = "https://github.com/rust-mobile/xbuild"
+license = "Apache-2.0 OR MIT"
+
+[dependencies]
+anyhow = "1.0.68"
+apple-codesign = "0.22.0"
+icns = "0.3.1"
+log = "0.4.17"
+pkcs8 = "0.9.0"
+plist = "1.3.1"
+rasn = "0.6.1"
+rasn-cms = "0.6.0"
+serde = { version = "1.0.151", features = ["derive"] }
+x509-certificate = "0.16.0"
+xcommon = { version = "0.3.0", path = "../xcommon" }

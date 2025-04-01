@@ -1,0 +1,74 @@
+on:
+  release:
+    types:
+    - created
+
+name: sdk
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+    - run: echo "TOOLCHAIN=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64" >> $GITHUB_ENV
+    - run: ls $TOOLCHAIN/lib64/clang | xargs -0 printf "CLANG_VERSION=%s" >> $GITHUB_ENV
+    - run: echo "CLANG=$TOOLCHAIN/lib64/clang/$CLANG_VERSION" >> $GITHUB_ENV
+
+    - run: echo $ANDROID_NDK_LATEST_HOME
+    - run: echo $CLANG_VERSION
+
+    - run: mkdir Android.ndk
+    - run: cp -r $TOOLCHAIN/sysroot/usr Android.ndk/
+    - run: cp -r $CLANG/lib/linux/aarch64/* Android.ndk/usr/lib/aarch64-linux-android/
+    - run: cp -r $CLANG/lib/linux/arm/* Android.ndk/usr/lib/arm-linux-androideabi/
+    - run: cp -r $CLANG/lib/linux/x86_64/* Android.ndk/usr/lib/x86_64-linux-android/
+    - run: cp -r $CLANG/lib/linux/i386/* Android.ndk/usr/lib/i686-linux-android/
+
+    - run: echo "INPUT(-lunwind)" > Android.ndk/usr/lib/aarch64-linux-android/libgcc.a
+    - run: echo "INPUT(-lunwind)" > Android.ndk/usr/lib/arm-linux-androideabi/libgcc.a
+    - run: echo "INPUT(-lunwind)" > Android.ndk/usr/lib/x86_64-linux-android/libgcc.a
+    - run: echo "INPUT(-lunwind)" > Android.ndk/usr/lib/i686-linux-android/libgcc.a
+
+    - run: tar --zstd -cf Android.ndk.tar.zst Android.ndk
+    - run: gh release upload $TAG Android.ndk.tar.zst -R ${{ github.repository }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TAG: ${{ github.event.release.tag_name }}
+
+  macos:
+    runs-on: macos-11
+    steps:
+    - run: ls /Applications/Xcode*
+    - run: cp -R $SDK_PATH .
+      env:
+        SDK_PATH: /Applications/Xcode_13.2.1.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk
+    - run: gtar --zstd -cf MacOSX.sdk.tar.zst MacOSX.sdk
+    - run: gh release upload $TAG MacOSX.sdk.tar.zst -R ${{ github.repository }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TAG: ${{ github.event.release.tag_name }}
+
+  ios:
+    runs-on: macos-11
+    steps:
+    - run: ls /Applications/Xcode*
+    - run: cp -R $SDK_PATH .
+      env:
+        SDK_PATH: /Applications/Xcode_13.2.1.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk
+    - run: gtar --zstd -cf iPhoneOS.sdk.tar.zst iPhoneOS.sdk
+    - run: gh release upload $TAG iPhoneOS.sdk.tar.zst -R ${{ github.repository }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TAG: ${{ github.event.release.tag_name }}
+
+  windows:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Install rust toolchain
+      uses: hecrj/setup-rust-action@v1
+    - run: cargo install xwin
+    - run: xwin --accept-license splat --output Windows.sdk
+    - run: tar --zstd -cf Windows.sdk.tar.zst Windows.sdk
+    - run: gh release upload $TAG Windows.sdk.tar.zst -R ${{ github.repository }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TAG: ${{ github.event.release.tag_name }}

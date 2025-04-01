@@ -1,0 +1,11 @@
+[package]
+name = "pri"
+version = "0.2.0"
+edition = "2021"
+description = "Library for creating and parsing pri files."
+repository = "https://github.com/rust-mobile/xbuild"
+license = "Apache-2.0 OR MIT"
+
+[dependencies]
+anyhow = "1.0.68"
+byteorder = "1.4.3"

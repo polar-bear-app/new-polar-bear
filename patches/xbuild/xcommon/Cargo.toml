@@ -1,0 +1,19 @@
+[package]
+name = "xcommon"
+version = "0.3.0"
+edition = "2021"
+description = "Utilities for x."
+repository = "https://github.com/rust-mobile/xbuild"
+license = "Apache-2.0 OR MIT"
+
+[dependencies]
+anyhow = "1.0.68"
+byteorder = "1.4.3"
+dunce = "1"
+image = { version = "0.24.5", default-features = false, features = ["png", "webp"] }
+pem = "1.1.0"
+rasn = "0.6.1"
+rasn-pkix = "0.6.0"
+rsa = "0.7.2"
+sha2 = { version = "0.10.6", features = ["oid"] }
+zip = { version = "0.6.3", default-features = false, features = ["deflate"] }
